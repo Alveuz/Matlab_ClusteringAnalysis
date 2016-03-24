@@ -1,0 +1,8 @@
+glpQ
+glpT
+glpA
+glpB
+glpC
+glpD
+glpK
+glpF

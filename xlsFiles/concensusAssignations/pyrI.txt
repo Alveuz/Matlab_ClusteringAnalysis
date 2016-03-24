@@ -1,0 +1,6 @@
+carA
+carB
+codB
+codA
+pyrI
+pyrB

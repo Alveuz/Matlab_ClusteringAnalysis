@@ -1,0 +1,7 @@
+gatA
+gatB
+gatC
+gatD
+gatR
+gatY
+gatZ
