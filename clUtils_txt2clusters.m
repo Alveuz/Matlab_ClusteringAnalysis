@@ -15,7 +15,6 @@ function [clusIdxesArr, clusTGenes] = clUtils_txt2clusters( pathStr )
 %   assignation
 
     wildCard        = '*.txt';
-
     filesArr        = dir([pathStr wildCard]);
     filesArrSize    = size(filesArr,1);
 

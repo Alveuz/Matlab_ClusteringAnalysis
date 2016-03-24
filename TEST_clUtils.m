@@ -4,10 +4,12 @@ clear;clc;
 % converted to a more suitable data type.
 % -----------------
 % load 'jointMdAndOperonGenes.mat'; %Regulon and MD joint data set
-load 'jointGenesList.mat'; % joint genes list for MD and Regulon
+runPath             = what;
+tempGenesListPath   = [runPath.path '\MatData\jointGenesList.mat'];
+load(tempGenesListPath); % joint genes list for MD and Regulon
 
 %Path for concensus results (txt files)
-pathConsensus   = 'C:\Users\Alveuz\Dropbox\Articles\zz_Colaborations\001_Mishael_EColiClustering\Results\ConsensusAssignations\clusters_finales_v3_2\';
+pathConsensus   = [runPath.path '\xlsFiles\concensusAssignations\'];
 
 [clusIdxesArr, clusTGenes] = clUtils_txt2clusters(pathConsensus);
 
