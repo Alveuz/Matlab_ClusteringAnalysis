@@ -1,17 +1,17 @@
-function [ clusteringSummary ] = clUtils_clusters2matrix( clusteringResults, genesList )
+function [ clusteringSummary ] = clUtils_clusters2matrix( clusteringResults, featureList )
 % CLUTILS_CLUSTERS2MATRIX
-% Using the results of a clustering algorithm, and a list of genes
+% Using the results of a clustering algorithm, and a list of features
 % obtains the corresponding matrix form of size M x N
 % where M is the number of clusters of the algoritm,
-% and N is the number of genes in the list.
+% and N is the number of features in the list.
 %   INPUT:
 %   - CLUSTERINGRESULTS is a cell matrix of size M x 2
 %   where M is the number of clusters. The first column, 
 %   contain a string with the id of the cluster. 
-%   The second column, contains a gene assigned to the 
+%   The second column, contains a feature assigned to the 
 %   aforementioned cluster.
 %   - GENESLIST is a cell matrix of size N x 1
-%   where N is the number of genes which are going to 
+%   where N is the number of features which are going to 
 %   be considered for the matrix form
 %
 %   OUTPUT:
@@ -19,50 +19,53 @@ function [ clusteringSummary ] = clUtils_clusters2matrix( clusteringResults, gen
 %   The first element contains the ids of the clustering's clusters
 %   The second element, contains a matrix of size M x N
 %   where M is the number of clusters of the algoritm,
-%   and N is the number of genes in the list.
+%   and N is the number of features in the list.
+% Function coded by PhD Guillermo Santamaría-Bonfil.
+% alveuz@gmail.com
+% https://github.com/Alveuz/Matlab_ClusteringAnalysis
 
-    genesFeaturesSize   = size(genesList(:,1),1);
+    featuresSize   = size(featureList(:,1),1);
 
-    for i=1:genesFeaturesSize
-        %Obtain gene of the MD&RgDB joint list
-        tempGene        = cellstr(genesList{i,1});
-        %Find this gene in the consensus genes list, and get the corresponding
+    for i=1:featuresSize
+        %Obtain feature of the MD&RgDB joint list
+        tempFeat        = cellstr(featureList{i,1});
+        %Find this feature in the consensus features list, and get the corresponding
         %idx for the cluster as assigned by the consensus clustering algorithm.
-        tempIdx         = find(strcmp(tempGene, clusteringResults(:,2)));
+        tempIdx         = find(strcmp(tempFeat, clusteringResults(:,2)));
         if(i==1)
-            jointClAndDBGenes    = clusteringResults(tempIdx,:);
+            jointClAndClB    = clusteringResults(tempIdx,:);
         else
-            jointClAndDBGenes    = [jointClAndDBGenes; clusteringResults(tempIdx,:)];
+            jointClAndClB    = [jointClAndClB; clusteringResults(tempIdx,:)];
         end
     end
 
-    clustersIds = unique(jointClAndDBGenes(:,1));
-    cl_iVector  = int8(zeros(1, genesFeaturesSize));
+    clustersIds = unique(jointClAndClB(:,1));
+    cl_iVector  = int8(zeros(1, featuresSize));
 
     for i=1:length(clustersIds)
         tempIdClus          = clustersIds(i,1);
-        temp_cl_i_Idxes     = find(strcmp(tempIdClus, jointClAndDBGenes(:,1)));
+        temp_cl_i_Idxes     = find(strcmp(tempIdClus, jointClAndClB(:,1)));
 
         if(length(temp_cl_i_Idxes)>1)
             cli_GenesSize   = size(temp_cl_i_Idxes, 1);
-            subGenesSet     = jointClAndDBGenes(temp_cl_i_Idxes, 2);
+            subGenesSet     = jointClAndClB(temp_cl_i_Idxes, 2);
 
             for j=1:cli_GenesSize
                 if(j==1)
-                    tempIdxes = find(strcmp(subGenesSet(j), genesList(:,1))~=0);
+                    tempIdxes = find(strcmp(subGenesSet(j), featureList(:,1))~=0);
                 else
                     tempIdxes = [tempIdxes; ...
-                        find(strcmp(subGenesSet(j), genesList(:,1))~=0)];
+                        find(strcmp(subGenesSet(j), featureList(:,1))~=0)];
                 end
             end
         else
-            tempIdxes = find(strcmp(tempIdClus, genesList(:,1))~=0);
+            tempIdxes = find(strcmp(tempIdClus, featureList(:,1))~=0);
         end
 
         if(i==1)
             cl_iVector(1,tempIdxes) = 1;
         else
-            tempVector              =  int8(zeros(1, genesFeaturesSize));
+            tempVector              =  int8(zeros(1, featuresSize));
             tempVector(1,tempIdxes) = 1;
             cl_iVector              = [cl_iVector; tempVector];
         end

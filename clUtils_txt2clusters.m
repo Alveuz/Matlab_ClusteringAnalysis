@@ -13,6 +13,9 @@ function [clusIdxesArr, clusTGenes] = clUtils_txt2clusters( pathStr )
 %   - CLUSTGENES is a cell vector of size N x 1
 %   together with CLUSIDXESARR match to the clusters
 %   assignation
+% Function coded by PhD Guillermo Santamaría-Bonfil.
+% alveuz@gmail.com
+% https://github.com/Alveuz/Matlab_ClusteringAnalysis
 
     wildCard        = '*.txt';
     filesArr        = dir([pathStr wildCard]);
