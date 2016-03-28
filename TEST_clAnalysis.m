@@ -13,6 +13,8 @@ load(tempGenesListPath); % joint genes list for MD and Regulon.
 load(operonDataPath); % RegulonDB E. coli operonData.
 load(kmeans456DataPath); % Assignations of genes for kmeans W/ 456 Centroids.
 
+operonMatrix = operonVector;
+
 %Path for concensus results (txt files)
 pathConsensus   = [runPath.path '\xlsFiles\concensusAssignations\'];
 
@@ -38,35 +40,78 @@ cl_Res{2,1}     = cl_kmeansRes;
 
 expSize = length(cl_Res);
 
-for i=1: expSize
-    
-    cl_iCluster         = cl_Res{i,1};
-    tempGenesCl_iSize   = size(cl_iCluster,1);
-    
-    for j=1:tempGenesCl_iSize
-        disp([ 'Experiment :', num2str(i),  ', Comparing Cluster: ', num2str(j)]);
-        if(j==1)
-            [precCli, recCli] = clusT_PrecRecMeasures( ...
-                                        cl_iCluster(j,:), operonVector );
-        else
-            [tempCliPrec, tempCliRec]  = clusT_PrecRecMeasures( ...
-                                        cl_iCluster(j,:), operonVector );
-            
-            precCli = [precCli; tempCliPrec];
-            recCli  = [recCli; tempCliRec];
-        end
-        
+if matlabpool('size') == 0 % checking to see if my pool is already open
+    matlabpool open 2
+end
+
+for i = 1: expSize
+
+    tempClustering      = cl_Res{i,1};
+    if(~iscell(tempClustering))
+        trialsPerClustering = 1;
+    else
+        trialsPerClustering = size(tempClustering, 1);
     end
     
-    [ FMeasure{1,i}, JaccardIdx{1,i}, Goodness{1,i} ] = clusT_ExtrnlMeasures( ...
-                                                    precCli, recCli );
-    
-    cl_iPrecMatrix{1,i} = precCli;
-    cl_iRecMatrix{1,i}  = recCli;
-    
-    clear precCli;
-    clear recCli;
+    switch trialsPerClustering
+        case 1
+        chosenMethod        = 1;%Calculate Precision/Recall 
+                            %between clusterings and RegulonDB Operons.
+        [precCli, recCli] = clValidation_ExternalMeasures(...
+                                    chosenMethod, ...
+                                    tempClustering, ...
+                                    operonMatrix );
         
+        chosenMethod = 6;%Calculate F-Measure, J-IDX, and G-IDX
+                            %between clusterings and RegulonDB Operons.
+        [ FMeasure{1,i}, JaccardIdx{1,i}, Goodness{1,i} ] = ...
+                                        clValidation_ExternalMeasures( ...
+                                                        chosenMethod, ...
+                                                        precCli, recCli );
+                                                    
+        cncnssPrecMatrix{1,i} = precCli;
+        cncnssRecMatrix{1,i}  = recCli;
+        
+        clear precCli;
+        clear recCli;
+        
+        case default
+        for j=1:trialsPerClustering
+            chosenMethod        = 1;%Calculate Precision/Recall 
+                            %between clusterings and RegulonDB Operons.
+            cl_iCluster         = tempClustering{j,1};
+            if(j==1)
+            [precCli, recCli] = clValidation_ExternalMeasures( ...
+                                        chosenMethod,...
+                                        cl_iCluster, operonMatrix );
+            else
+            [tempCliPrec, tempCliRec]  = clValidation_ExternalMeasures( ...
+                                        chosenMethod,...
+                                        cl_iCluster, operonMatrix );
+
+            precCli = [precCli; tempCliPrec];
+            recCli  = [recCli; tempCliRec];
+            end
+            
+            chosenMethod = 6;%Calculate F-Measure, J-IDX, and G-IDX
+                            %between clusterings and RegulonDB Operons.
+            [ FMeasure{1,i}, JaccardIdx{1,i}, Goodness{1,i} ] = ...
+                                        clValidation_ExternalMeasures( ...
+                                                        chosenMethod, ...
+                                                        precCli, recCli );
+            
+            kmeans456PrecMatrix{1,j} = precCli;
+            kmeans456RecMatrix{1,j}  = recCli;
+            
+            clear precCli;
+            clear recCli;
+            
+        end
+
+    end
+
 end
+
+matlabpool close;           % Close the distributed computing
 
 disp('bye horrible and mean world');

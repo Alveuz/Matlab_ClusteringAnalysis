@@ -5,13 +5,14 @@ function [ result, varargout ] = clValidation_ExternalMeasures( ...
 % CLVALIDATION_EXTERNALMEASURES
 % This function calculates several external validation 
 % measures for clustering. 
-% CHOSENMETHOD is an integer between 1-5. It allows to 
+% CHOSENMETHOD is an integer between 1-6. It allows to 
 % chose one of the five metrics:
 %   1) Precision and Recall between two clusterings
 %   2) Precision and Recall between two clusters.
 %   3) F-Measure        between two clusterings.
 %   4) Jaccard Index    between two clusterings.
 %   5) Goodness Index   between two clusterings.
+%   6) All measures (3-5) between two clusterings.
 % 
 % Each measure has different types of inputs and outputs.
 % In the following, these are described.
@@ -25,14 +26,14 @@ function [ result, varargout ] = clValidation_ExternalMeasures( ...
 %   and N are the number of features (genes).
 %
 %   OUTPUT:
-%   - RESULT -> PRECISION a matrix of size P X N containing 
+%   - RESULT -> PRECISION a matrix of size P X Q containing 
 %   the precision between A and B clusterings.
 %   Where P are the number of clusters of clustering A,
-%   and N are the number of features (genes).
-%   - VARARGOUT -> RECALL a matrix of size P X N containing 
+%   and Q are the number of clusters of clustering B.
+%   - VARARGOUT -> RECALL a matrix of size P X Q containing 
 %   the recall between A and B clusterings.
 %   Where P are the number of clusters of clustering A,
-%   and N are the number of features (genes).
+%   and Q are the number of clusters of clustering B.
 %
 %   2) PREC/REC BETWEEN TWO CLUSTERS.
 %   INPUT:
@@ -49,6 +50,83 @@ function [ result, varargout ] = clValidation_ExternalMeasures( ...
 %   the recall between A and B clusters.
 %   N are the number of features (genes).
 %
+%   3) F-MEASURE BETWEEN TWO CLUSTERS
+%   INPUT:
+%   - CLUSTERINGASSGNTNS -> PRECISION 
+%                       a vector of size       P x Q
+%   P are the number of clusters in clustering A,
+%   and Q are the number of clusters of clustering B.
+%   - VARARGIN -> RECALL 
+%                       a vector of size P x Q
+%   P are the number of clusters in clustering A,
+%   and Q are the number of clusters of clustering B.
+%
+%   OUTPUT:
+%   - RESULT -> F-MEASURE 
+%                       a vector of size P X Q
+%   containing  the relation between A and B clusterings
+%   in terms of the F-Measure similarity.
+%   P are the number of clusters in clustering A,
+%   and Q are the number of clusters of clustering B.
+%
+%   4) JACCARD INDEX BETWEEN TWO CLUSTERS
+%   INPUT:
+%   - CLUSTERINGASSGNTNS -> PRECISION 
+%                       a vector of size       P x Q
+%   P are the number of clusters in clustering A,
+%   and Q are the number of clusters of clustering B.
+%   - VARARGIN -> RECALL 
+%                       a vector of size P x Q
+%   P are the number of clusters in clustering A,
+%   and Q are the number of clusters of clustering B.
+%
+%   OUTPUT:
+%   - RESULT -> J-IDX
+%                       a vector of size P X Q
+%   containing  the relation between A and B clusterings
+%   in terms of the Jaccard Index similarity.
+%   P are the number of clusters in clustering A,
+%   and Q are the number of clusters of clustering B.
+%
+%   5) GOODNESS INDEX BETWEEN TWO CLUSTERS
+%   INPUT:
+%   - CLUSTERINGASSGNTNS -> PRECISION 
+%                       a vector of size       P x Q
+%   P are the number of clusters in clustering A,
+%   and Q are the number of clusters of clustering B.
+%   - VARARGIN -> RECALL 
+%                       a vector of size P x Q
+%   P are the number of clusters in clustering A,
+%   and Q are the number of clusters of clustering B.
+%
+%   OUTPUT:
+%   - RESULT -> G-IDX
+%                       a vector of size P X Q
+%   containing  the relation between A and B clusterings
+%   in terms of the Goodness Index similarity.
+%   P are the number of clusters in clustering A,
+%   and Q are the number of clusters of clustering B.
+%
+%   6) F-MEASURE, J-IDX, AND G-IDX BETWEEN TWO CLUSTERS
+%   INPUT:
+%   - CLUSTERINGASSGNTNS -> PRECISION 
+%                       a vector of size       P x Q
+%   P are the number of clusters in clustering A,
+%   and Q are the number of clusters of clustering B.
+%   - VARARGIN -> RECALL 
+%                       a vector of size P x Q
+%   P are the number of clusters in clustering A,
+%   and Q are the number of clusters of clustering B.
+%
+%   OUTPUT:
+%   - RESULT -> F-MEASURE
+%   - VARARGOUT{1,1} -> J-IDX
+%   - VARARGOUT{1,2} -> G-IDX 
+%                       each one vector of size P X Q
+%   containing  the relation between A and B clusterings
+%   in terms of the F-Measure, Jaccard Index,
+%   and Goodness Index similarities.
+%
 % Function coded by PhD Guillermo Santamaría-Bonfil.
 % alveuz@gmail.com
 % https://github.com/Alveuz/Matlab_ClusteringAnalysis
@@ -58,8 +136,31 @@ function [ result, varargout ] = clValidation_ExternalMeasures( ...
         case 1
             cl_iClustering      = clusteringAssgntns;
             cl_jClustering      = varargin{1,1};
-            tempGenesCl_iSize   = size(cl_iClustering,1);
-            for j=1:tempGenesCl_iSize
+            tempCl_iPerClstrng  = size(cl_iClustering,1);
+            
+            precCli = zeros(tempCl_iPerClstrng, ...
+                            size(cl_jClustering,1));
+            
+            recCli = zeros(tempCl_iPerClstrng, ...
+                            size(cl_jClustering,1));
+            
+            tic
+            parfor j=1:tempCl_iPerClstrng
+                t = getCurrentTask(); 
+                disp(strcat('worker_', num2str(t.ID), ', task_', num2str(j) ));
+                [precCli(j,:), recCli(j,:)] = ...
+                                clValidation_PrecRecMeasures( ...
+                                cl_iClustering(j,:), cl_jClustering );
+            end
+            parForTime = toc;
+            disp(strcat('Parallel time: ', num2str(parForTime)))
+            
+            clear precCli;
+            clear recCli;
+            
+            tic
+            for j=1:tempCl_iPerClstrng
+                disp(strcat('exctn_', num2str(j) ))
                 if(j==1)
                     [precCli, recCli] = ...
                                 clValidation_PrecRecMeasures( ...
@@ -73,7 +174,9 @@ function [ result, varargout ] = clValidation_ExternalMeasures( ...
                     recCli  = [recCli; tempCliRec];
                 end
             end
-
+            seqForTime = toc;
+            disp(strcat('Sequential time: ', num2str(seqForTime)))
+            
             result          = precCli;
             varargout{1,1}  = recCli;
 
@@ -99,6 +202,8 @@ function [ result, varargout ] = clValidation_ExternalMeasures( ...
             FMeasure  = (2.*coeffBeta)./coeffZeta;
             
             FMeasure(isnan(FMeasure))       = 0;
+            
+            result = FMeasure;
 
         case 4
             precMatrix  = clusteringAssgntns;
@@ -109,6 +214,8 @@ function [ result, varargout ] = clValidation_ExternalMeasures( ...
             JaccardIdx  = (coeffBeta)./sqrt(coeffZeta - coeffBeta);
             
             JaccardIdx(isnan(JaccardIdx))   = 0;
+            
+            result = JaccardIdx;
 
         case 5
             precMatrix  = clusteringAssgntns;
@@ -120,6 +227,26 @@ function [ result, varargout ] = clValidation_ExternalMeasures( ...
             
             Goodness(isnan(Goodness))       = 0;
             
+            result = Goodness;
+            
+        case 6
+            precMatrix  = clusteringAssgntns;
+            recMatrix   = varargin{1,1};
+            
+            coeffBeta = precMatrix.*recMatrix;
+            coeffZeta = precMatrix+recMatrix;
+            
+            FMeasure    = (2.*coeffBeta)./coeffZeta;
+            JaccardIdx  = (coeffBeta)./sqrt(coeffZeta - coeffBeta);
+            Goodness    = 0.5.*(coeffZeta);
+            
+            FMeasure(isnan(FMeasure))       = 0;
+            JaccardIdx(isnan(JaccardIdx))   = 0;
+            Goodness(isnan(Goodness))       = 0;
+            
+            result          = FMeasure;
+            varargout{1,1}  = JaccardIdx;
+            varargout{2,1}  = Goodness;
     end
 
 end
